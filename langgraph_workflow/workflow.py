@@ -1,6 +1,6 @@
 from typing import TypedDict
 from langgraph.graph import StateGraph, END
-from langgraph.checkpoint.sqlite import SqliteSaver
+from langgraph_checkpoint_sqlite import SqliteSaver
 import sqlite3
 # Import all of our real AI Agents!
 from agents.extractor_agent import extract_invoice_data
