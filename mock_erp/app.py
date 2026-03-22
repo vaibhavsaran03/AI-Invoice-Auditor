@@ -171,4 +171,5 @@ async def get_rejected_history():
     except: return []
 
 if __name__ == "__main__":
-    uvicorn.run("mock_erp.app:app", host="127.0.0.1", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("mock_erp.app:app", host="0.0.0.0", port=port, reload=False)
