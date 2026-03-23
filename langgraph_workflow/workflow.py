@@ -1,6 +1,9 @@
 from typing import TypedDict
 from langgraph.graph import StateGraph, END
-from langgraph_checkpoint_sqlite import SqliteSaver
+try:
+    from langgraph.checkpoint.sqlite import SqliteSaver
+except (ImportError, ModuleNotFoundError):
+    from langgraph_checkpoint_sqlite import SqliteSaver
 import sqlite3
 # Import all of our real AI Agents!
 from agents.extractor_agent import extract_invoice_data
