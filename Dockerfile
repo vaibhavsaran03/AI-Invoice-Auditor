@@ -22,6 +22,7 @@ COPY agents/ ./agents/
 COPY langgraph_workflow/ ./langgraph_workflow/
 COPY mock_erp/ ./mock_erp/
 COPY data/ ./data/
+COPY config/ ./config/
 
 # 6. Set Path
 ENV PYTHONPATH=/app \
