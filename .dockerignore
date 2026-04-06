@@ -1,0 +1,19 @@
+# 1. Your specific Virtual Environment
+agenticenv/
+
+# 2. Python Cache (Must stay)
+**/__pycache__/
+*.py[cod]
+
+# 3. Your Frontend (Since Vercel handles this)
+frontend/
+node_modules/
+
+# 4. Your Database & Data (To prevent overwriting cloud data)
+*.sqlite
+data/incoming/*
+data/vector_db/*
+
+# 5. Git & IDE Settings
+.git/
+.vscode/

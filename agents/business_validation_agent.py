@@ -35,7 +35,7 @@ def validate_business_rules(structured_data: dict) -> list:
     rules = load_rules()
     errors = []
     
-    # 🌟 GUARD 1: Capture the name and check if it exists at all
+    #  Capture the name and check if it exists at all
     original_name = structured_data.get("vendor_id") # Use .get() without fallback to check for None
     
     if not original_name:

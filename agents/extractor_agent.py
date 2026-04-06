@@ -30,9 +30,13 @@ def extract_invoice_data(file_path: str) -> str:
                 
         # If it's an Image (PNG)
         elif file_path.endswith('.png'):
-            print("🖼️ Oh, an image! Using OCR to read it...")
-            image = Image.open(file_path)
-            extracted_text = pytesseract.image_to_string(image)
+            try:
+                print("🖼️ Oh, an image! Using OCR to read it...")
+                image = Image.open(file_path)
+                extracted_text = pytesseract.image_to_string(image)
+            except Exception as ocr_error:
+                print(f"⚠️ OCR Error: Tesseract engine not found on server. {ocr_error}")
+                extracted_text = "Error: OCR is not configured on this server environment."
             
         else:
             extracted_text = "Error: I don't know how to read this file type!"
