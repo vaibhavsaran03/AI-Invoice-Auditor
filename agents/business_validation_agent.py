@@ -27,7 +27,7 @@ def load_rules():
 
 def get_vendor_id_with_ai(vendor_name):
     """Uses Groq to semantically match the extracted name to the real ERP ID."""
-    vendors_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'erp_mock_data', 'vendors.json'))
+    vendors_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'Erp_mock_data', 'vendors.json'))
     with open(vendors_path, 'r', encoding='utf-8') as file:
         vendors = json.load(file)
     
@@ -80,7 +80,7 @@ def validate_business_rules(structured_data: dict) -> list:
     # 1. Check Vendor ERP Database (Currency Check)
     # ---------------------------------------------------------
     try:
-        vendors_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'erp_mock_data', 'vendors.json'))
+        vendors_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'Erp_mock_data', 'vendors.json'))
         
         with open(vendors_path, 'r', encoding='utf-8') as file:
             vendors_db = json.load(file)
@@ -111,7 +111,7 @@ def validate_business_rules(structured_data: dict) -> list:
     print("   --> 📦 Verifying Line Items against PO Records...")
     try:
         # Search the local Mock ERP files to find the active PO for this vendor
-        po_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'erp_mock_data', 'po_records.json'))
+        po_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'Erp_mock_data', 'po_records.json'))
         with open(po_path, 'r', encoding='utf-8') as file:
             all_pos = json.load(file)
             
