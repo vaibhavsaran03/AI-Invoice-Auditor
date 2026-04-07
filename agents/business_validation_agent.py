@@ -4,9 +4,24 @@ import yaml
 import requests
 from litellm import completion
 
+import os
+
 def load_rules():
-    """Reads the rules.yaml file into Python."""
-    config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'config', 'rules.yaml'))
+    """Reads the rules.yaml file into Python with Debugging."""
+    # This shows us exactly where we are in the cloud
+    current_dir = os.path.dirname(__file__)
+    config_path = os.path.abspath(os.path.join(current_dir, '..', 'config', 'rules.yaml'))
+    
+    # DEBUG PRINT: This will show up in your Render Logs
+    print(f"DEBUG: Looking for rules at: {config_path}")
+    
+    # CHECK IF FOLDER EXISTS
+    parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
+    print(f"DEBUG: Files in parent dir: {os.listdir(parent_dir)}")
+
+    if not os.path.exists(config_path):
+        raise FileNotFoundError(f"Missing config file at {config_path}")
+
     with open(config_path, 'r') as file:
         return yaml.safe_load(file)
 
@@ -96,7 +111,7 @@ def validate_business_rules(structured_data: dict) -> list:
     print("   --> 📦 Verifying Line Items against PO Records...")
     try:
         # Search the local Mock ERP files to find the active PO for this vendor
-        po_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'erp_mock_data', 'PO Records.json'))
+        po_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'erp_mock_data', 'po_records.json'))
         with open(po_path, 'r', encoding='utf-8') as file:
             all_pos = json.load(file)
             

@@ -17,7 +17,6 @@ def index_reports():
     if not db_sqlite_path.exists(): return
 
     documents = []
-    all_vendors = set()
     all_invoice_nos = []
     invoice_summaries = []
 
