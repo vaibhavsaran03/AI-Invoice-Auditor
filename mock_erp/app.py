@@ -83,7 +83,9 @@ async def process_invoice(filename: str):
         
         # Auto-Approve path
         save_audit_record(filename, "approved", "Auto-approved by AI System", state_values.get("structured_data", {}), errors)
+
         index_reports()
+        
         return {"status": "complete", "recommendation": "Approved"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Pipeline Error: {str(e)}")
@@ -156,6 +158,8 @@ async def upload_invoice(file: UploadFile = File(...)):
 @app.post("/api/chat")
 async def chat_with_db(request: dict):
     query = request.get("query")
+    if not query:
+        raise HTTPException(status_code=400, detail="Query is required")
     answer, sources = ask_invoice_database(query)
     return {"answer": answer, "sources": sources}
 

@@ -3,11 +3,17 @@ import json
 from pathlib import Path
 from dotenv import load_dotenv
 from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings, HuggingFaceInferenceAPIEmbeddings
 from litellm import completion
 
 load_dotenv()
+import gc
 
+def get_embeddings():
+    return HuggingFaceInferenceAPIEmbeddings(
+        api_key=os.getenv("HUGGINGFACEHUB_API_TOKEN"),
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
+    )
 def ask_invoice_database(question: str):
     """Retrieves context, generates an answer, and reflects on accuracy with citations."""
     print(f"\n🔍 Retrieval Agent: Searching for: '{question}'")
@@ -19,10 +25,12 @@ def ask_invoice_database(question: str):
         return "Error: No database found. Please run the Indexing Agent first.", []
 
     # 1. RETRIEVAL (Fetching top 4 chunks for better global context)
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    embeddings = get_embeddings()
     vectorstore = FAISS.load_local(str(db_path), embeddings, allow_dangerous_deserialization=True)
     
     retrieved_docs = vectorstore.similarity_search(question, k=4)
+    del vectorstore
+    gc.collect()
     context = "\n\n".join([doc.page_content for doc in retrieved_docs])
     sources = list(set([doc.metadata.get('source', 'Unknown') for doc in retrieved_docs]))
     
