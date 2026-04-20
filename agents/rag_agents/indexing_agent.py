@@ -72,43 +72,45 @@ def index_reports():
         documents = []
         for row in rows:
             inv_id, status, comment, data_raw, sys_errors = row
-            
-            # 1. Skip if already in RAG
-            if inv_id in existing_ids:
-                continue
-
-            # 🛡️ DEBUG: See exactly what is breaking
-            print(f"DEBUG: Processing {inv_id}. Raw Data Length: {len(str(data_raw)) if data_raw else 0}")
+            if inv_id in existing_ids: continue
 
             try:
-                # GUARD 1: Check for empty or None data
-                if not data_raw or str(data_raw).strip() == "":
-                    print(f"⚠️ Skipping {inv_id}: Database column 'data' is empty.")
-                    continue
-
-                # GUARD 2: Attempt JSON parse
                 details = json.loads(data_raw)
                 
+                # --- NEW: Extract Deep Details ---
                 vendor = details.get('vendor_name') or details.get('vendor_id', 'Unknown')
                 inv_no = details.get('invoice_no', inv_id)
+                currency = details.get('currency', '$')
+                total = details.get('total_amount', 0)
+                
+                # 📦 Detailed Line Items
+                line_items = details.get('line_items', [])
+                items_str = "\n".join([
+                    f"- {item.get('description')} | SKU: {item.get('item_code')} | Qty: {item.get('qty')} | Price: {item.get('unit_price')}" 
+                    for item in line_items
+                ])
 
+                # 📑 Build the "Full Knowledge" Document
                 content = (
-                    f"Invoice: {inv_no}\nVendor: {vendor}\n"
-                    f"Status: {status}\nErrors: {sys_errors or 'None'}\n"
-                    f"Comment: {comment}"
+                    f"INVOICE RECORD\n"
+                    f"Number: {inv_no}\n"
+                    f"Vendor: {vendor}\n"
+                    f"Total: {currency}{total}\n"
+                    f"Status: {status}\n"
+                    f"Decision Comment: {comment}\n"
+                    f"System Flags/Errors: {sys_errors or 'None'}\n\n"
+                    f"LINE ITEM BREAKDOWN:\n{items_str}\n"
+                    f"------------------------"
                 )
 
                 documents.append(
                     Document(
                         page_content=content,
-                        metadata={"invoice_id": inv_id, "status": status}
+                        metadata={"invoice_id": inv_id, "status": status, "vendor": vendor}
                     )
                 )
-            except json.JSONDecodeError as je:
-                print(f"🚨 JSON ERROR on {inv_id}: {je}. Data content: {data_raw[:50]}...")
-                continue
             except Exception as e:
-                print(f"🚨 Unexpected error on {inv_id}: {e}")
+                print(f"⚠️ Error parsing {inv_id}: {e}")
                 continue
 
         # ✅ 3. UPDATE FAISS
