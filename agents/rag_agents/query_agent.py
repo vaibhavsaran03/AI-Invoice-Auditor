@@ -7,14 +7,17 @@ from dotenv import load_dotenv
 # CLEANED IMPORTS: No more heavy HuggingFace/OpenAI in memory
 from langchain_community.vectorstores import FAISS
 from litellm import completion
-from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings   
+from langchain_huggingface import HuggingFaceEndpointEmbeddings  
 load_dotenv()
 
 # ✅ Global Embeddings (Matches Indexing Agent)
-embeddings = HuggingFaceInferenceAPIEmbeddings(
-    api_key=os.getenv("HUGGINGFACEHUB_API_TOKEN"), 
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
-)
+def get_embeddings():
+    api_key = os.getenv("HUGGINGFACEHUB_API_TOKEN")
+    return HuggingFaceEndpointEmbeddings(
+        model="sentence-transformers/all-MiniLM-L6-v2",
+        huggingfacehub_api_token=api_key,
+        task="feature-extraction"
+    )
 
 def ask_invoice_database(question: str):
     """Retrieves context, generates an answer, and reflects on accuracy."""
@@ -32,7 +35,7 @@ def ask_invoice_database(question: str):
         # allow_dangerous_deserialization is required for loading local FAISS pkl files
         vectorstore = FAISS.load_local(
             str(db_path), 
-            embeddings, 
+            embeddings = get_embeddings(), 
             allow_dangerous_deserialization=True
         )
         

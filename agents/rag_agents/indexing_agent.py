@@ -5,16 +5,18 @@ import gc
 from pathlib import Path
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
-from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
+from langchain_huggingface import HuggingFaceEndpointEmbeddings
 from dotenv import load_dotenv
 
 load_dotenv()
 
 # ✅ Global initialization (Loads once, stays in RAM)
 def get_embeddings():
-    return HuggingFaceInferenceAPIEmbeddings(
-        api_key=os.getenv("HUGGINGFACEHUB_API_TOKEN"), 
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
+    api_key = os.getenv("HUGGINGFACEHUB_API_TOKEN")
+    return HuggingFaceEndpointEmbeddings(
+        model="sentence-transformers/all-MiniLM-L6-v2",
+        huggingfacehub_api_token=api_key,
+        task="feature-extraction"
     )
 
 def index_reports():
