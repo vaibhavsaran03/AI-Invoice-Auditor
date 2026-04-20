@@ -3,18 +3,16 @@ import os
 import sqlite3
 import gc
 from pathlib import Path
-
 from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
+from langchain_groq import GroqEmbeddings # Fully switch to Groq
 from langchain_core.documents import Document
+from dotenv import load_dotenv
 
+load_dotenv()
 
+# ✅ Global initialization (Loads once, stays in RAM)
 def get_embeddings():
-    return HuggingFaceInferenceAPIEmbeddings(
-        api_key=os.getenv("HUGGINGFACEHUB_API_TOKEN"),
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
-    )
-
+    return GroqEmbeddings(model_name="nomic-embed-text-v1.5")
 
 def index_reports():
     print("📚 Indexing Agent: Incremental RAG update...")
@@ -32,6 +30,13 @@ def index_reports():
     try:
         conn = sqlite3.connect(str(db_sqlite_path))
         cursor = conn.cursor()
+        
+        # Guard: Check if table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='audit_history'")
+        if not cursor.fetchone():
+            print("🚨 Table 'audit_history' not found.")
+            conn.close()
+            return
 
         cursor.execute("SELECT invoice_id, status, comment, data, system_errors FROM audit_history")
         rows = cursor.fetchall()
@@ -42,10 +47,10 @@ def index_reports():
             return
 
         embeddings = get_embeddings()
-
-        # ✅ LOAD EXISTING INDEX + GET EXISTING IDS
         existing_ids = set()
+        vectorstore = None
 
+        # ✅ 1. LOAD EXISTING INDEX
         if index_file.exists():
             print("🔄 Loading existing FAISS index...")
             vectorstore = FAISS.load_local(
@@ -53,89 +58,56 @@ def index_reports():
                 embeddings,
                 allow_dangerous_deserialization=True
             )
-
-            try:
-                existing_docs = vectorstore.docstore._dict.values()
-                existing_ids = set(doc.metadata.get("invoice_id") for doc in existing_docs)
-            except Exception:
-                print("⚠️ Could not read docstore, skipping dedup")
+            # Efficiently extract IDs from docstore
+            existing_ids = set(doc.metadata.get("invoice_id") for doc in vectorstore.docstore._dict.values())
         else:
             print("🆕 Creating new FAISS index...")
-            vectorstore = None
 
-        # 🔥 STEP 1: CHECK IF REBUILD IS REQUIRED
-        rebuild_required = False
-
-        for row in rows:
-            inv_id = row[0]
-            if inv_id in existing_ids:
-                print(f"🔄 Update detected for {inv_id}, triggering rebuild...")
-                rebuild_required = True
-                break
-
-        # 🔥 STEP 2: DECIDE DATA TO INDEX
-        if rebuild_required:
-            print("♻️ Rebuilding FAISS with ALL records...")
-            rows_to_index = rows
-            vectorstore = None  # force rebuild
-        else:
-            rows_to_index = rows[-5:]  # incremental
-
+        # ✅ 2. DETERMINE NEW DOCUMENTS
         documents = []
-
-        for row in rows_to_index:
+        for row in rows:
             inv_id, status, comment, data_raw, sys_errors = row
-
-            # 🚫 Skip duplicates ONLY if NOT rebuilding
-            if not rebuild_required and inv_id in existing_ids:
+            
+            # Skip if already in RAG
+            if inv_id in existing_ids:
                 continue
 
             try:
                 details = json.loads(data_raw)
-            except Exception:
-                print(f"⚠️ Skipping invalid JSON for {inv_id}")
-                continue
+                vendor = details.get('vendor_name') or details.get('vendor_id', 'Unknown')
+                inv_no = details.get('invoice_no', inv_id)
 
-            vendor = details.get('vendor_name') or details.get('vendor_id', 'Unknown')
-            inv_no = details.get('invoice_no', inv_id)
-
-            content = (
-                f"Invoice: {inv_no}\n"
-                f"Vendor: {vendor}\n"
-                f"Status: {status}\n"
-                f"Errors: {sys_errors or 'None'}\n"
-                f"Comment: {comment}"
-            )
-
-            documents.append(
-                Document(
-                    page_content=content,
-                    metadata={
-                        "invoice_id": inv_id,
-                        "status": status
-                    }
+                content = (
+                    f"Invoice: {inv_no}\nVendor: {vendor}\n"
+                    f"Status: {status}\nErrors: {sys_errors or 'None'}\n"
+                    f"Comment: {comment}"
                 )
-            )
 
+                documents.append(
+                    Document(
+                        page_content=content,
+                        metadata={"invoice_id": inv_id, "status": status}
+                    )
+                )
+            except: continue
+
+        # ✅ 3. UPDATE FAISS
         if not documents:
-            print("⚠️ No new documents to add.")
+            print("⚠️ No new documents found. RAG is up to date.")
             return
 
-        documents = documents[:50]
-
-        # ✅ BUILD OR UPDATE
         if vectorstore:
-            print("➕ Adding new documents to FAISS...")
+            print(f"➕ Adding {len(documents)} new documents...")
             vectorstore.add_documents(documents)
         else:
-            print("🆕 Building FAISS from scratch...")
+            print(f"🆕 Building fresh index with {len(documents)} documents...")
             vectorstore = FAISS.from_documents(documents, embeddings)
 
-        # ✅ SAVE
+        # ✅ 4. SAVE & PURGE RAM
         faiss_db_path.mkdir(parents=True, exist_ok=True)
         vectorstore.save_local(str(faiss_db_path))
 
-        # 🧹 CLEAN MEMORY
+        # Crucial for 512MB RAM limit
         del vectorstore
         del documents
         gc.collect()
@@ -144,7 +116,6 @@ def index_reports():
 
     except Exception as e:
         print(f"❌ Indexing Error: {e}")
-
 
 if __name__ == "__main__":
     index_reports()
