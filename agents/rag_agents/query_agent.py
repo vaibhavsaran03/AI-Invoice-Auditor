@@ -7,11 +7,14 @@ from dotenv import load_dotenv
 # CLEANED IMPORTS: No more heavy HuggingFace/OpenAI in memory
 from langchain_community.vectorstores import FAISS
 from litellm import completion
-from langchain_community.embeddings import GroqEmbeddings
+from langchain_huggingface import HuggingFaceInferenceAPIEmbeddings     
 load_dotenv()
 
 # ✅ Global Embeddings (Matches Indexing Agent)
-embeddings = GroqEmbeddings(model_name="nomic-embed-text-v1.5")
+embeddings = HuggingFaceInferenceAPIEmbeddings(
+    api_key=os.getenv("HUGGINGFACEHUB_API_TOKEN"), 
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
+)
 
 def ask_invoice_database(question: str):
     """Retrieves context, generates an answer, and reflects on accuracy."""

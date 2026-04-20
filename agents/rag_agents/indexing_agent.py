@@ -4,15 +4,18 @@ import sqlite3
 import gc
 from pathlib import Path
 from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import GroqEmbeddings
 from langchain_core.documents import Document
+from langchain_huggingface import HuggingFaceInferenceAPIEmbeddings
 from dotenv import load_dotenv
 
 load_dotenv()
 
 # ✅ Global initialization (Loads once, stays in RAM)
 def get_embeddings():
-    return GroqEmbeddings(model_name="nomic-embed-text-v1.5")
+    return HuggingFaceInferenceAPIEmbeddings(
+        api_key=os.getenv("HUGGINGFACEHUB_API_TOKEN"), 
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
+    )
 
 def index_reports():
     print("📚 Indexing Agent: Incremental RAG update...")
