@@ -4,7 +4,7 @@ import sqlite3
 import gc
 from pathlib import Path
 from langchain_community.vectorstores import FAISS
-from langchain_groq import GroqEmbeddings # Fully switch to Groq
+from langchain_community.embeddings import GroqEmbeddings
 from langchain_core.documents import Document
 from dotenv import load_dotenv
 

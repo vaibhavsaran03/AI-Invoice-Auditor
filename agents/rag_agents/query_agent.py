@@ -7,8 +7,7 @@ from dotenv import load_dotenv
 # CLEANED IMPORTS: No more heavy HuggingFace/OpenAI in memory
 from langchain_community.vectorstores import FAISS
 from litellm import completion
-from langchain_groq import GroqEmbeddings
-
+from langchain_community.embeddings import GroqEmbeddings
 load_dotenv()
 
 # ✅ Global Embeddings (Matches Indexing Agent)
