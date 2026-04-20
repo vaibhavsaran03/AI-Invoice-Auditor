@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 # CLEANED IMPORTS: No more heavy HuggingFace/OpenAI in memory
 from langchain_community.vectorstores import FAISS
 from litellm import completion
-from langchain_huggingface import HuggingFaceInferenceAPIEmbeddings     
+from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings   
 load_dotenv()
 
 # ✅ Global Embeddings (Matches Indexing Agent)
