@@ -71,12 +71,22 @@ def index_reports():
         for row in rows:
             inv_id, status, comment, data_raw, sys_errors = row
             
-            # Skip if already in RAG
+            # 1. Skip if already in RAG
             if inv_id in existing_ids:
                 continue
 
+            # 🛡️ DEBUG: See exactly what is breaking
+            print(f"DEBUG: Processing {inv_id}. Raw Data Length: {len(str(data_raw)) if data_raw else 0}")
+
             try:
+                # GUARD 1: Check for empty or None data
+                if not data_raw or str(data_raw).strip() == "":
+                    print(f"⚠️ Skipping {inv_id}: Database column 'data' is empty.")
+                    continue
+
+                # GUARD 2: Attempt JSON parse
                 details = json.loads(data_raw)
+                
                 vendor = details.get('vendor_name') or details.get('vendor_id', 'Unknown')
                 inv_no = details.get('invoice_no', inv_id)
 
@@ -92,7 +102,12 @@ def index_reports():
                         metadata={"invoice_id": inv_id, "status": status}
                     )
                 )
-            except: continue
+            except json.JSONDecodeError as je:
+                print(f"🚨 JSON ERROR on {inv_id}: {je}. Data content: {data_raw[:50]}...")
+                continue
+            except Exception as e:
+                print(f"🚨 Unexpected error on {inv_id}: {e}")
+                continue
 
         # ✅ 3. UPDATE FAISS
         if not documents:
