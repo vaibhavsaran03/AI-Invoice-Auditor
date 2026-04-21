@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 
-# AI Logic Imports
+#
 from langgraph_workflow.workflow import app as langgraph_app
 from agents.rag_agents.indexing_agent import index_reports
 from agents.rag_agents.query_agent import ask_invoice_database
@@ -21,7 +21,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Paths
+
 ROOT_DIR = Path(__file__).parent.parent.resolve()
 INCOMING_DIR = ROOT_DIR / "data" / "incoming"
 INCOMING_DIR.mkdir(parents=True, exist_ok=True)
@@ -30,7 +30,7 @@ CHECKPOINT_DB = ROOT_DIR / "checkpoints.sqlite"
 def init_db():
     conn = sqlite3.connect(str(CHECKPOINT_DB))
     cursor = conn.cursor()
-    # 🌟 Added system_errors column to existing table logic
+   
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS audit_history (
             invoice_id TEXT PRIMARY KEY,
@@ -48,7 +48,7 @@ def save_audit_record(invoice_id, status, comment, data, system_errors=None):
     try:
         conn = sqlite3.connect(str(CHECKPOINT_DB))
         cursor = conn.cursor()
-        # Convert list of errors to string for SQL storage
+        
         error_str = ", ".join(system_errors) if isinstance(system_errors, list) else (system_errors or "")
         cursor.execute(
             "INSERT OR REPLACE INTO audit_history (invoice_id, status, comment, system_errors, data) VALUES (?, ?, ?, ?, ?)",
@@ -57,7 +57,7 @@ def save_audit_record(invoice_id, status, comment, data, system_errors=None):
         conn.commit()
         conn.close()
     except Exception as e:
-        print(f"❌ DB Log Error: {e}")
+        print(f"DB Log Error: {e}")
 
 init_db()
 
@@ -73,7 +73,7 @@ async def process_invoice(filename: str):
         errors = state_values.get("erp_validation_errors", [])
         
         if current_state.next and "human_review" in current_state.next:
-            # 🌟 Save current errors to DB so they aren't lost during the pause
+            
             save_audit_record(filename, "pending", "Waiting for Review", state_values.get("structured_data", {}), errors)
             return {
                 "status": "paused",
@@ -98,7 +98,7 @@ async def handle_hitl_action(thread_id: str, payload: dict):
     comment = payload.get("comment", "No comment.")
     
     try:
-        # 🌟 Fetch the original AI errors from state to include in the permanent record
+        #Fetch the original AI errors from state to include in the permanent record
         state = langgraph_app.get_state(config)
         original_errors = state.values.get("erp_validation_errors", [])
 

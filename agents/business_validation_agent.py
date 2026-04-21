@@ -8,14 +8,11 @@ import os
 
 def load_rules():
     """Reads the rules.yaml file into Python with Debugging."""
-    # This shows us exactly where we are in the cloud
     current_dir = os.path.dirname(__file__)
     config_path = os.path.abspath(os.path.join(current_dir, '..', 'config', 'rules.yaml'))
     
-    # DEBUG PRINT: This will show up in your Render Logs
     print(f"DEBUG: Looking for rules at: {config_path}")
-    
-    # CHECK IF FOLDER EXISTS
+
     parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
     print(f"DEBUG: Files in parent dir: {os.listdir(parent_dir)}")
 
@@ -41,12 +38,12 @@ def get_vendor_id_with_ai(vendor_name):
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        print(f"❌ AI Semantic Match Error: {e}")
+        print(f" AI Semantic Match Error: {e}")
         return ""
 
 def validate_business_rules(structured_data: dict) -> list:
     """Checks the extracted invoice data (including line items) against the Mock ERP."""
-    print("🏢 Business Validation Agent: Checking against Mock ERP...")
+    print(" Business Validation Agent: Checking against Mock ERP...")
     rules = load_rules()
     errors = []
     
@@ -54,7 +51,7 @@ def validate_business_rules(structured_data: dict) -> list:
     original_name = structured_data.get("vendor_id") # Use .get() without fallback to check for None
     
     if not original_name:
-        print("   --> ❌ CRITICAL ERROR: No Vendor ID or Name found in extracted data.")
+        print("   --> CRITICAL ERROR: No Vendor ID or Name found in extracted data.")
         errors.append("Critical Error: AI failed to extract any Vendor identification from the document.")
         return errors # EXIT EARLY: Do not continue if we don't know who the vendor is
 
@@ -62,12 +59,12 @@ def validate_business_rules(structured_data: dict) -> list:
     
     # Resolve the Vendor ID if Groq extracted the name instead
     if not str(vendor_id).startswith("VEND-"):
-        print(f"   --> 🧠 Attempting AI Semantic Match for: {vendor_id}")
+        print(f"   --> Attempting AI Semantic Match for: {vendor_id}")
         vendor_id = get_vendor_id_with_ai(vendor_id)
         
-        # 🌟 GUARD 2: Check if AI successfully resolved the name to an ID
+        # Check if AI successfully resolved the name to an ID
         if not vendor_id:
-            print("   --> ❌ ERROR: AI could not match vendor name to an ERP ID.")
+            print("   --> ERROR: AI could not match vendor name to an ERP ID.")
             errors.append(f"Vendor resolution failed: '{original_name}' does not exist in ERP records.")
             return errors # EXIT EARLY: Cannot check POs or Currencies without a valid ID
 
@@ -76,9 +73,8 @@ def validate_business_rules(structured_data: dict) -> list:
     else:
         structured_data["vendor_name"] = original_name
 
-    # ---------------------------------------------------------
-    # 1. Check Vendor ERP Database (Currency Check)
-    # ---------------------------------------------------------
+    # Check Vendor ERP Database (Currency Check)
+
     try:
         vendors_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'ERP_mock_data', 'vendors.json'))
         
@@ -102,13 +98,11 @@ def validate_business_rules(structured_data: dict) -> list:
             return errors # Exit here because PO check will also fail
             
     except Exception as e:
-        print(f"❌ ERP Local Access Error: {e}")
+        print(f" ERP Local Access Error: {e}")
         errors.append("Could not access ERP data.")
-
-    # ---------------------------------------------------------
-    # 2. Check Purchase Order Line Items (2-Way Math Matching)
-    # ---------------------------------------------------------
-    print("   --> 📦 Verifying Line Items against PO Records...")
+   
+    #  Check Purchase Order Line Items (2-Way Math Matching)
+    print("   -->  Verifying Line Items against PO Records...")
     try:
         # Search the local Mock ERP files to find the active PO for this vendor
         po_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'ERP_mock_data', 'po_records.json'))
@@ -119,7 +113,7 @@ def validate_business_rules(structured_data: dict) -> list:
         vendor_po = next((po for po in all_pos if po.get("vendor_id") == vendor_id), None)
         
         if vendor_po:
-            print(f"   --> ✅ Found matching Purchase Order in ERP: {vendor_po['po_number']}")
+            print(f"   --> Found matching Purchase Order in ERP: {vendor_po['po_number']}")
             
             # Map the ERP items by their SKU code for easy checking
             erp_items = {item["item_code"]: item for item in vendor_po["line_items"]}
@@ -153,12 +147,12 @@ def validate_business_rules(structured_data: dict) -> list:
             errors.append(f"No active Purchase Order found in ERP for vendor {vendor_id}.")
             
     except Exception as e:
-        print(f"❌ PO Validation Error: {e}")
+        print(f"PO Validation Error: {e}")
         errors.append("Failed to validate line items against ERP.")
 
     if errors:
-        print(f"   --> ⚠️ Business Rule Violations: {errors}")
+        print(f"--> Business Rule Violations: {errors}")
     else:
-        print("   --> 🎉 2-Way Match Passed! All line items, quantities, and prices align perfectly with the ERP tolerances.")
+        print("--> 2-Way Match Passed! All line items, quantities, and prices align perfectly with the ERP tolerances.")
         
     return errors

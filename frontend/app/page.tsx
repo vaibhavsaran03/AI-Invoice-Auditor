@@ -26,7 +26,7 @@ export default function Dashboard() {
   const [humanComment, setHumanComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 🌟 CHANGE THESE TO YOUR ACTUAL FILENAMES IN public/samples/
+  
   const sampleFiles = [
     "test_invoice_match.pdf",
     "test_invoice_mismatch.pdf",
@@ -59,13 +59,23 @@ export default function Dashboard() {
   const handleAuditAction = async (action: "approved" | "rejected") => {
     if (!selectedReview) return;
     setIsSubmitting(true);
+    setIsProcessing(true);
     try {
-      await invoiceApi.handleHitlAction(selectedReview.id, { action, data: selectedReview.data, comment: humanComment });
+      await invoiceApi.handleHitlAction(selectedReview.id, { 
+        action, 
+        data: selectedReview.data, 
+        comment: humanComment 
+      });
       toast.success(`Invoice ${action} and recorded in DB`);
       setSelectedReview(null);
       setHumanComment("");
       refreshSystemState();
-    } catch (err) { toast.error("Action failed"); } finally { setIsSubmitting(false); }
+    } catch (err) { 
+      toast.error("Action failed"); 
+    } finally { 
+      setIsSubmitting(false); 
+      setIsProcessing(false); 
+    }
   };
 
   const handleChat = async () => {
@@ -84,7 +94,6 @@ export default function Dashboard() {
     executePipeline(file);
   };
 
-  // 🌟 RE-ENGINEERED: This sends the ACTUAL file to your Extractor Agent
   const executePipeline = async (file: File) => {
     setIsProcessing(true);
     try {
@@ -101,7 +110,6 @@ export default function Dashboard() {
     } catch (err) { toast.error("Pipeline Error"); } finally { setIsProcessing(false); }
   };
 
-  // 🌟 DYNAMIC FETCH: Grabs the real PDF from your public folder
   const handleSampleTest = async (fileName: string) => {
     try {
       const response = await fetch(`/samples/${fileName}`);
@@ -258,6 +266,32 @@ export default function Dashboard() {
           </div>
         )}
       </main>
+      {/* 🌟 GLOBAL AI LOADER OVERLAY */}
+      {isProcessing && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 backdrop-blur-md transition-all duration-300">
+          <div className="flex flex-col items-center p-10 bg-white rounded-[40px] shadow-2xl border border-blue-100 animate-in fade-in zoom-in duration-300">
+            <div className="relative">
+              {/* Outer Pulse Ring */}
+              <div className="absolute inset-0 rounded-full bg-blue-500/20 animate-ping"></div>
+              {/* Spinning Ring */}
+              <Loader2 className="text-blue-600 animate-spin relative z-10" size={64} strokeWidth={1.5} />
+            </div>
+            
+            <h3 className="mt-8 text-xl font-bold text-slate-900 tracking-tight">
+              AI Auditor is Thinking
+            </h3>
+            <p className="mt-2 text-slate-500 text-sm font-medium flex items-center gap-2">
+              <Activity size={14} className="text-blue-500 animate-pulse" /> 
+              Syncing with RAG & ERP Systems...
+            </p>
+            
+            {/* Minimalist Progress Bar */}
+            <div className="w-48 h-1 bg-slate-100 rounded-full mt-6 overflow-hidden">
+              <div className="h-full bg-blue-600 rounded-full animate-progress-loading"></div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

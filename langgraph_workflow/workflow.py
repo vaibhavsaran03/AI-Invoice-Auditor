@@ -9,9 +9,6 @@ from agents.validation_agent import validate_invoice
 from agents.business_validation_agent import validate_business_rules
 from agents.reporting_agent import generate_report
 
-# ---------------------------------------------------------
-# 1. THE BACKPACK (The State)
-# ---------------------------------------------------------
 class InvoiceState(TypedDict):
     file_path: str
     extracted_text: str
@@ -22,9 +19,7 @@ class InvoiceState(TypedDict):
     erp_validation_errors: list   
     final_report: dict  # <-- Make sure this is a dict!
 
-# ---------------------------------------------------------
-# 2. THE RUNNERS (The Nodes)
-# ---------------------------------------------------------
+
 def extractor_node(state: InvoiceState):
     return {"extracted_text": extract_invoice_data(state["file_path"])}
 
@@ -51,32 +46,29 @@ def reporter_node(state: InvoiceState):
         state["structured_data"], 
         state["validation_errors"], 
         state["erp_validation_errors"],
-        state.get("translation_confidence", 1.0) # <--- ADD THIS
+        state.get("translation_confidence", 1.0) 
     )
     return {"final_report": report}
 
-# --- NEW: The Human Review Placeholder ---
+
 def human_review_node(state: InvoiceState):
-    print("👩‍💻 Human Auditor: I have reviewed and fixed the errors. Resuming the race!")
-    # The UI will update the state before this node runs, so we just pass it along!
+    print("Human Auditor: I have reviewed and fixed the errors. Resuming the race!")
+
     return state
 
-# --- NEW: The Referee (Conditional Routing) ---
 def route_after_reporting(state: InvoiceState):
     recommendation = state.get("final_report", {}).get("recommendation", "Approve")
     if recommendation in ["Manual Review", "Reject"]:
-        print("\n🛑 REFEREE: Errors found! Pausing the graph and calling the Human!")
+        print("\nREFEREE: Errors found! Pausing the graph and calling the Human!")
         return "human_review"
     
-    print("\n✅ REFEREE: Perfect invoice! Sending straight to the finish line.")
+    print("\nREFEREE: Perfect invoice! Sending straight to the finish line.")
     return END
 
-# ---------------------------------------------------------
-# 3. THE TRACK (The Graph)
-# ---------------------------------------------------------
+
 workflow = StateGraph(InvoiceState)
 
-# Add all runners
+
 workflow.add_node("extractor", extractor_node)
 workflow.add_node("translator", translator_node)
 workflow.add_node("validator", validator_node)
@@ -84,23 +76,19 @@ workflow.add_node("business_validator", business_validator_node)
 workflow.add_node("reporter", reporter_node)
 workflow.add_node("human_review", human_review_node)
 
-# Connect the standard relay race
 workflow.set_entry_point("extractor")
 workflow.add_edge("extractor", "translator")
 workflow.add_edge("translator", "validator")
 workflow.add_edge("validator", "business_validator")
 workflow.add_edge("business_validator", "reporter")
 
-# Add the fork in the road!
 workflow.add_conditional_edges("reporter", route_after_reporting)
-workflow.add_edge("human_review", END) # <-- Later, this will go to the RAG Indexing Agent!
+workflow.add_edge("human_review", END)
 
-# --- NEW: Add the Save Game Database and the Pause Button! ---
-# Open a direct connection to the database file
 conn = sqlite3.connect("checkpoints.sqlite", check_same_thread=False)
 memory = SqliteSaver(conn)
 
 app = workflow.compile(
     checkpointer=memory,
-    interrupt_before=["human_review"] # <-- The graph will FREEZE before this node runs!
+    interrupt_before=["human_review"]
 )

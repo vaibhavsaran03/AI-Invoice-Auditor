@@ -9,12 +9,12 @@ def translate_invoice(extracted_text: str) -> dict:
     """
     Translates text to English AND calculates an AI confidence score.
     """
-    print("🧠 Translator Agent: Translating and calculating confidence score...")
+    print("Translator Agent: Translating and calculating confidence score...")
     
     if not extracted_text.strip():
         return {"translated_text": "Error: No text provided.", "confidence_score": 0.0}
 
-    # We now prompt the AI to output JSON containing BOTH the text and the score
+    
     messages = [
         {
             "role": "system", 
@@ -41,5 +41,5 @@ def translate_invoice(extracted_text: str) -> dict:
         return result
 
     except Exception as e:
-        print(f"❌ AI Translation Error: {e}")
+        print(f"AI Translation Error: {e}")
         return {"translated_text": extracted_text, "confidence_score": 0.0}

@@ -10,12 +10,12 @@ def load_rules():
         with open(config_path, 'r') as file:
             return yaml.safe_load(file)
     except Exception as e:
-        print(f"❌ Validation Error: Could not load the rulebook! {e}")
+        print(f" Validation Error: Could not load the rulebook! {e}")
         return None
 
 def extract_structured_data(text: str) -> dict:
     """Uses Groq AI to extract BOTH header data and nested line items."""
-    print("🧠 Validation Agent: Asking Groq to extract headers AND line items...")
+    print(" Validation Agent: Asking Groq to extract headers AND line items...")
     
     messages = [
         {
@@ -44,7 +44,7 @@ def extract_structured_data(text: str) -> dict:
         return json.loads(clean_json)
     
     except Exception as e:
-        print(f"❌ AI Extraction Error: {e}")
+        print(f"AI Extraction Error: {e}")
         return {}
     
 def validate_invoice(translated_text: str) -> dict:
@@ -52,13 +52,13 @@ def validate_invoice(translated_text: str) -> dict:
     print("✅ Validation Agent: Starting validation process...")
     rules = load_rules()
     
-    # 1. Ask AI to get the structured dictionary
+    # Ask AI to get the structured dictionary
     structured_data = extract_structured_data(translated_text)
-    print(f"   --> 📦 Extracted Data: {structured_data}")
+    print(f"   --> Extracted Data: {structured_data}")
     
     errors = []
     
-    # 2. Check against rules.yaml!
+    # Check against rules.yaml!
     if rules and "required_fields" in rules:
         required_headers = rules["required_fields"].get("header", [])
         
@@ -68,9 +68,9 @@ def validate_invoice(translated_text: str) -> dict:
                 errors.append(f"Missing required field: {field}")
                 
     if errors:
-        print(f"   --> ⚠️ Rule Violations Found: {errors}")
+        print(f"   --> Rule Violations Found: {errors}")
     else:
-        print("   --> 🎉 Success! All required header fields are present.")
+        print("   -->  Success! All required header fields are present.")
         
-    # We return BOTH the extracted data and the errors
+    # return BOTH the extracted data and the errors
     return {"structured_data": structured_data, "errors": errors}

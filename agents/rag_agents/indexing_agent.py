@@ -10,7 +10,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ✅ Global initialization (Loads once, stays in RAM)
 def get_embeddings():
     api_key = os.getenv("HUGGINGFACEHUB_API_TOKEN")
     return HuggingFaceEndpointEmbeddings(
@@ -20,7 +19,7 @@ def get_embeddings():
     )
 
 def index_reports():
-    print("📚 Indexing Agent: Incremental RAG update...")
+    print("Indexing Agent: Incremental RAG update...")
 
     current_file = Path(__file__).resolve()
     root_dir = current_file.parent.parent.parent
@@ -29,17 +28,17 @@ def index_reports():
     index_file = faiss_db_path / "index.faiss"
 
     if not db_sqlite_path.exists():
-        print("🚨 No DB found. Skipping indexing.")
+        print("No DB found. Skipping indexing.")
         return
 
     try:
         conn = sqlite3.connect(str(db_sqlite_path))
         cursor = conn.cursor()
         
-        # Guard: Check if table exists
+        # To check if table exists
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='audit_history'")
         if not cursor.fetchone():
-            print("🚨 Table 'audit_history' not found.")
+            print(" Table 'audit_history' not found.")
             conn.close()
             return
 
@@ -48,14 +47,14 @@ def index_reports():
         conn.close()
 
         if not rows:
-            print("📝 Nothing to index.")
+            print(" Nothing to index.")
             return
 
         embeddings = get_embeddings()
         existing_ids = set()
         vectorstore = None
 
-        # ✅ 1. LOAD EXISTING INDEX
+        # LOAD EXISTING INDEX
         if index_file.exists():
             print("🔄 Loading existing FAISS index...")
             vectorstore = FAISS.load_local(
@@ -66,9 +65,9 @@ def index_reports():
             # Efficiently extract IDs from docstore
             existing_ids = set(doc.metadata.get("invoice_id") for doc in vectorstore.docstore._dict.values())
         else:
-            print("🆕 Creating new FAISS index...")
+            print("Creating new FAISS index...")
 
-        # ✅ 2. DETERMINE NEW DOCUMENTS
+        # DETERMINE NEW DOCUMENTS
         documents = []
         for row in rows:
             inv_id, status, comment, data_raw, sys_errors = row
@@ -83,14 +82,14 @@ def index_reports():
                 currency = details.get('currency', '$')
                 total = details.get('total_amount', 0)
                 
-                # 📦 Detailed Line Items
+                # Detailed Line Items
                 line_items = details.get('line_items', [])
                 items_str = "\n".join([
                     f"- {item.get('description')} | SKU: {item.get('item_code')} | Qty: {item.get('qty')} | Price: {item.get('unit_price')}" 
                     for item in line_items
                 ])
 
-                # 📑 Build the "Full Knowledge" Document
+                # Build the "Full Knowledge" Document
                 content = (
                     f"INVOICE RECORD\n"
                     f"Number: {inv_no}\n"
@@ -110,22 +109,22 @@ def index_reports():
                     )
                 )
             except Exception as e:
-                print(f"⚠️ Error parsing {inv_id}: {e}")
+                print(f"Error parsing {inv_id}: {e}")
                 continue
 
-        # ✅ 3. UPDATE FAISS
+        # UPDATE FAISS
         if not documents:
-            print("⚠️ No new documents found. RAG is up to date.")
+            print(" No new documents found. RAG is up to date.")
             return
 
         if vectorstore:
-            print(f"➕ Adding {len(documents)} new documents...")
+            print(f"Adding {len(documents)} new documents...")
             vectorstore.add_documents(documents)
         else:
-            print(f"🆕 Building fresh index with {len(documents)} documents...")
+            print(f" Building fresh index with {len(documents)} documents...")
             vectorstore = FAISS.from_documents(documents, embeddings)
 
-        # ✅ 4. SAVE & PURGE RAM
+        # SAVE & PURGE RAM
         faiss_db_path.mkdir(parents=True, exist_ok=True)
         vectorstore.save_local(str(faiss_db_path))
 
@@ -134,10 +133,10 @@ def index_reports():
         del documents
         gc.collect()
 
-        print("✅ FAISS updated successfully!")
+        print("FAISS updated successfully!")
 
     except Exception as e:
-        print(f"❌ Indexing Error: {e}")
+        print(f"Indexing Error: {e}")
 
 if __name__ == "__main__":
     index_reports()

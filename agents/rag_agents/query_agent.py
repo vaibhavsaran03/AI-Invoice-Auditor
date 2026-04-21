@@ -10,7 +10,6 @@ from litellm import completion
 from langchain_huggingface import HuggingFaceEndpointEmbeddings  
 load_dotenv()
 
-# ✅ Global Embeddings (Matches Indexing Agent)
 def get_embeddings():
     api_key = os.getenv("HUGGINGFACEHUB_API_TOKEN")
     return HuggingFaceEndpointEmbeddings(
@@ -21,7 +20,7 @@ def get_embeddings():
 
 def ask_invoice_database(question: str):
     """Retrieves context, generates an answer, and reflects on accuracy."""
-    print(f"\n🔍 Retrieval Agent: Searching for: '{question}'")
+    print(f"\nRetrieval Agent: Searching for: '{question}'")
     
     root_dir = Path(__file__).parent.parent.parent
     db_path = root_dir / "data" / "faiss_index"
@@ -32,7 +31,6 @@ def ask_invoice_database(question: str):
 
     try:
         # 1. RETRIEVAL
-        # allow_dangerous_deserialization is required for loading local FAISS pkl files
         vectorstore = FAISS.load_local(
             str(db_path), 
             embeddings = get_embeddings(), 
@@ -41,7 +39,7 @@ def ask_invoice_database(question: str):
         
         retrieved_docs = vectorstore.similarity_search(question, k=4)
         
-        # 🧹 RAM Cleanup immediately after search
+        #RAM Cleanup immediately after search
         del vectorstore
         gc.collect()
 
@@ -51,14 +49,14 @@ def ask_invoice_database(question: str):
         if not context.strip():
             return "I could not find any relevant information in the audit history.", []
 
-        # 2. GENERATION
+        # GENERATION
         model_name = "groq/llama-3.1-8b-instant"
-        print(f"🧠 Generation Agent: Formulating answer...")
+        print(f"Generation Agent: Formulating answer...")
 
         gen_prompt = f"""You are an expert Accounts Payable AI. 
         Use the context to answer accurately. 
         Context includes 'GLOBAL_DATABASE_SUMMARY' for general queries.
-
+        Answer in a professional accountant and human-manner way. Being very helpful.
         === CONTEXT ===
         {context}
         ===============
@@ -73,14 +71,11 @@ def ask_invoice_database(question: str):
         )
         draft_answer = gen_response.choices[0].message.content.strip()
 
-        # 3. REFLECTION
-        print("🧐 Reflection Agent: Auditing for groundedness...")
-        
-        # (Your existing reflection prompt and logic are perfect)
-        # ... [Logic remains the same as your snippet] ...
+        #REFLECTION
+        print(" Reflection Agent: Auditing for groundedness...")
         
         return draft_answer, sources
 
     except Exception as e:
-        print(f"❌ Retrieval Error: {e}")
+        print(f" Retrieval Error: {e}")
         return f"I encountered an error while searching the database: {e}", []
