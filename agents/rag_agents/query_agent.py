@@ -27,7 +27,7 @@ def ask_invoice_database(question: str):
     index_file = db_path / "index.faiss" # Specific file check
     
     if not index_file.exists():
-        return "Error: No database found. Please approve/reject an invoice to build the index first.", []
+        return "Hi, please upload an invoice to ask questions and get insights.", []
 
     try:
         # 1. RETRIEVAL
@@ -53,7 +53,7 @@ def ask_invoice_database(question: str):
         model_name = "groq/llama-3.1-8b-instant"
         print(f"Generation Agent: Formulating answer...")
 
-        gen_prompt = f"""You are an expert Accounts Payable AI with good communication skills. 
+        gen_prompt = f"""You are an expert AI auditor with good communication skills. 
         Use the context to answer accurately. 
         Answer in a professional tone and manner to the customers.
         === CONTEXT ===
