@@ -55,8 +55,7 @@ def ask_invoice_database(question: str):
 
         gen_prompt = f"""You are an expert Accounts Payable AI with good communication skills. 
         Use the context to answer accurately. 
-        Context includes 'GLOBAL_DATABASE_SUMMARY' for general queries.
-        Answer in a professional tone and manner.
+        Answer in a professional tone and manner to the customers.
         === CONTEXT ===
         {context}
         ===============
