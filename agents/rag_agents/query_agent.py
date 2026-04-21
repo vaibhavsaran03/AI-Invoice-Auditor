@@ -53,10 +53,10 @@ def ask_invoice_database(question: str):
         model_name = "groq/llama-3.1-8b-instant"
         print(f"Generation Agent: Formulating answer...")
 
-        gen_prompt = f"""You are an expert Accounts Payable AI. 
+        gen_prompt = f"""You are an expert Accounts Payable AI with good communication skills. 
         Use the context to answer accurately. 
         Context includes 'GLOBAL_DATABASE_SUMMARY' for general queries.
-        Answer in a professional accountant and human-manner way. Being very helpful.
+        Answer in a professional tone and manner.
         === CONTEXT ===
         {context}
         ===============
